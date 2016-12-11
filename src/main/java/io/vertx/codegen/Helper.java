@@ -16,6 +16,9 @@ package io.vertx.codegen;
  * You may elect to redistribute this code under either of these licenses.
  */
 
+import io.vertx.codegen.type.TypeInfo;
+import io.vertx.core.Future;
+
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -659,5 +662,36 @@ public class Helper {
         flatMap(Helper.FILTER_METHOD).
         filter(exeElt -> exeElt.getSimpleName().toString().equals("toJson") && typeUtils.isSameType(jsonType, exeElt.getReturnType())).
         count() > 0;
+  }
+
+  static boolean isFutureType(TypeInfo type) {
+    return type.isParameterized() && type.getRaw().getName().equals("io.vertx.core.Promise");
+  }
+
+  static boolean bilto(MethodInfo m1, MethodInfo m2) {
+
+    if (m1.getName().equals(m2.getName()) && m1.getKind() == MethodKind.FUTURE && m2.getKind() == MethodKind.FUTURE
+        && m1.isStaticMethod() == m2.isStaticMethod()) {
+      List<ParamInfo> l1;
+      List<ParamInfo> l2;
+      if (isFutureType(m1.getReturnType()) && !isFutureType(m2.getReturnType())) {
+        l1 = m1.getParams();
+        l2 = m2.getParams();
+      } else if (!isFutureType(m1.getReturnType()) && isFutureType(m2.getReturnType())) {
+        l1 = m2.getParams();
+        l2 = m1.getParams();
+      } else {
+        return false;
+      }
+      if (m1.getFutureTypeArg().equals(m2.getFutureTypeArg()) && l1.size() + 1 == l2.size()) {
+        for (int i = 0;i < l1.size();i++) {
+          if (!l1.get(i).getType().equals(l2.get(i).getType())) {
+            return false;
+          }
+        }
+        return true;
+      }
+    }
+    return false;
   }
 }

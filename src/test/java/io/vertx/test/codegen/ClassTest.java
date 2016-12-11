@@ -23,7 +23,9 @@ import io.vertx.codegen.testmodel.TestDataObject;
 import io.vertx.codegen.testmodel.TestGenEnum;
 import io.vertx.codegen.type.TypeVariableInfo;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.test.codegen.testapi.AbstractDataObjectWithToJson;
@@ -173,6 +175,10 @@ import io.vertx.test.codegen.testapi.fluent.FluentMethodWithIllegalReturn;
 import io.vertx.test.codegen.testapi.fluent.FluentMethodWithVoidReturn;
 import io.vertx.test.codegen.testapi.fluent.InterfaceWithFluentMethodOverrideFromAbstract;
 import io.vertx.test.codegen.testapi.fluent.InterfaceWithFluentMethodOverrideFromConcrete;
+import io.vertx.test.codegen.testapi.future.FutureInterface;
+import io.vertx.test.codegen.testapi.future.MethodWithInvalidFutureReturn;
+import io.vertx.test.codegen.testapi.future.MethodWithInvalidTypeParamFuture1;
+import io.vertx.test.codegen.testapi.future.MethodWithInvalidTypeParamFuture2;
 import io.vertx.test.codegen.testapi.handler.InterfaceExtendingHandlerStringSubtype;
 import io.vertx.test.codegen.testapi.handler.InterfaceExtendingHandlerVertxGenSubtype;
 import io.vertx.test.codegen.testapi.impl.InterfaceInImplPackage;
@@ -1723,6 +1729,29 @@ public class ClassTest extends ClassTestBase {
     checkMethod(model.getMethods().get(5), "foo_6", 2, MethodWithHandlerAsyncResultParam.class, MethodKind.FUTURE, MethodCheck.FLUENT);
     checkMethod(model.getMethods().get(6), "foo_7", 1, String.class.getName(), MethodKind.OTHER);
     checkMethod(model.getMethods().get(7), "foo_8", 2, "void", MethodKind.OTHER);
+  }
+
+  @Test
+  public void testMethodWithFutureReturn() throws Exception {
+    ClassModel model = new Generator().generateClass(FutureInterface.class);
+    assertEquals(6, model.getMethods().size());
+    checkMethod(model.getMethods().get(0), "methodWithVoidFuture1", 1, "void", MethodKind.FUTURE);
+    checkMethod(model.getMethods().get(1), "methodWithVoidFuture2", 1, "void", MethodKind.FUTURE);
+    checkMethod(model.getMethods().get(2), "methodWithGenericFuture", 1, "void", MethodKind.FUTURE);
+    checkMethod(model.getMethods().get(3), "methodWithArgAndFuture", 2, "void", MethodKind.FUTURE);
+    checkMethod(model.getMethods().get(4), "methodWithGenericFutureWithArg", 2, "void", MethodKind.FUTURE);
+    checkMethod(model.getMethods().get(5), "fluentMethodWithVoidFuture", 1, FutureInterface.class.getName(), MethodKind.FUTURE, MethodCheck.FLUENT);
+
+    // Check static
+    // Check type params with different names
+
+  }
+
+  @Test
+  public void testInvalid() throws Exception {
+    assertGenInvalid(MethodWithInvalidFutureReturn.class);
+    assertGenInvalid(MethodWithInvalidTypeParamFuture2.class);
+    assertGenInvalid(MethodWithInvalidTypeParamFuture2.class);
   }
 
   @Test

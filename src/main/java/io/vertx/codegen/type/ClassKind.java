@@ -41,6 +41,9 @@ public enum ClassKind {
   // Data objects
   DATA_OBJECT(false, false, false),
 
+  // CompletionStage<T>
+  FUTURE(false, false, false),
+
   // Handler
   HANDLER(false, false, false),
 
@@ -92,6 +95,8 @@ public enum ClassKind {
       return CLASS_TYPE;
     } else if (fqcn.equals(ClassModel.VERTX_HANDLER)) {
       return HANDLER;
+    } else if (fqcn.equals("io.vertx.core.Promise")) {
+      return FUTURE;
     } else if (fqcn.equals(ClassModel.VERTX_ASYNC_RESULT)) {
       return ASYNC_RESULT;
     } else if (fqcn.equals(ClassModel.JSON_ARRAY)) {

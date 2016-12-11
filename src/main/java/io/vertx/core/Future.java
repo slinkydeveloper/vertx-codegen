@@ -1,9 +1,12 @@
 package io.vertx.core;
 
+import io.vertx.codegen.annotations.VertxGen;
+
 /**
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
-public interface Future<T> extends AsyncResult<T> {
+@VertxGen
+public interface Future<T> extends AsyncResult<T>, Promise<T> {
 
   static <T> Future<T> succeededFuture(T result) {
     throw new UnsupportedOperationException();

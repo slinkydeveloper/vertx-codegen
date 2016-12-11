@@ -27,6 +27,7 @@ import io.vertx.codegen.doc.Token;
 import io.vertx.codegen.overloadcheck.MethodOverloadChecker;
 import io.vertx.codegen.type.*;
 import io.vertx.codegen.type.VoidTypeInfo;
+import io.vertx.core.Future;
 
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.AnnotationMirror;
@@ -86,6 +87,7 @@ public class ClassModel implements Model {
   protected final Types typeUtils;
   protected boolean processed = false;
   protected LinkedHashMap<ExecutableElement, MethodInfo> methods = new LinkedHashMap<>();
+  protected LinkedHashMap<ExecutableElement, MethodInfo> futureMethods = new LinkedHashMap<>();
   protected Set<ClassTypeInfo> collectedTypes = new HashSet<>();
   protected Set<ClassTypeInfo> importedTypes = new HashSet<>();
   protected Set<ApiTypeInfo> referencedTypes = new HashSet<>();
@@ -280,6 +282,9 @@ public class ClassModel implements Model {
       return;
     }
     if (isLegalHandlerAsyncResultType(type)) {
+      return;
+    }
+    if (isLegalFutureType(type)) {
       return;
     }
     throw new GenException(elem, "type " + type + " is not legal for use for a return type in code generation");
@@ -496,6 +501,16 @@ public class ClassModel implements Model {
     return false;
   }
 
+  private boolean isLegalFutureType(TypeInfo type) {
+    if (type.getErased().getKind() == ClassKind.FUTURE) {
+      TypeInfo eventType = ((ParameterizedTypeInfo) type).getArgs().get(0);
+      if (isLegalCallbackValueType(eventType) || eventType.getKind() == ClassKind.THROWABLE) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private boolean isLegalHandlerAsyncResultType(TypeInfo type) {
     if (type.getErased().getKind() == ClassKind.HANDLER) {
       TypeInfo eventType = ((ParameterizedTypeInfo) type).getArgs().get(0);
@@ -537,6 +552,20 @@ public class ClassModel implements Model {
   boolean process() {
     if (!processed) {
       traverseElem(modelElt);
+
+      futureMethods.forEach((elt, mi) -> {
+        List<MethodInfo> methodsByName = methodMap.get(mi.getName());
+        if (methodsByName != null) {
+          if (methodsByName.stream().filter(meth -> Helper.bilto(meth, mi)).findFirst().isPresent()) {
+            // Ok
+          } else {
+            throw new GenException(elt, "Implement me gracefully");
+          }
+        } else {
+          throw new GenException(elt, "Implement me gracefully");
+        }
+      });
+
       determineApiTypes();
       processed = true;
       return true;
@@ -823,7 +852,11 @@ public class ClassModel implements Model {
     // Determine method kind + validate
     MethodKind kind = MethodKind.OTHER;
     int lastParamIndex = mParams.size() - 1;
-    if (lastParamIndex >= 0 && (returnType instanceof VoidTypeInfo || isFluent)) {
+    boolean deferred = false;
+    if (Helper.isFutureType(returnType)) {
+      kind = MethodKind.FUTURE;
+      deferred = true;
+    } else if (lastParamIndex >= 0 && (returnType instanceof VoidTypeInfo || isFluent)) {
       TypeInfo lastParamType = mParams.get(lastParamIndex).type;
       if (lastParamType.getKind() == ClassKind.HANDLER) {
         TypeInfo typeArg = ((ParameterizedTypeInfo) lastParamType).getArgs().get(0);
@@ -837,6 +870,12 @@ public class ClassModel implements Model {
 
     MethodInfo methodInfo = createMethodInfo(ownerTypes, methodName, comment, doc, kind,
         returnType, returnDesc, isFluent, isCacheReturn, mParams, modelMethod, isStatic, isDefault, typeParams, declaringElt);
+
+    if (deferred) {
+      futureMethods.put(modelMethod, methodInfo);
+      return;
+    }
+
     checkMethod(methodInfo);
 
     // Check we don't hide another method, we don't check overrides but we are more
@@ -854,7 +893,7 @@ public class ClassModel implements Model {
     }
 
     // Add the method
-    List<MethodInfo> methodsByName = methodMap.get(methodInfo.getName());
+    List<MethodInfo> methodsByName = methodMap.get(methodName);
     if (methodsByName == null) {
       methodsByName = new ArrayList<>();
       methodMap.put(methodInfo.getName(), methodsByName);
