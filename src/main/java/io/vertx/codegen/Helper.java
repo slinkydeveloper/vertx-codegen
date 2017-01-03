@@ -16,6 +16,7 @@ package io.vertx.codegen;
  * You may elect to redistribute this code under either of these licenses.
  */
 
+import io.vertx.codegen.type.ParameterizedTypeInfo;
 import io.vertx.codegen.type.TypeInfo;
 import io.vertx.core.Future;
 
@@ -665,32 +666,36 @@ public class Helper {
   }
 
   static boolean isFutureType(TypeInfo type) {
-    return type.isParameterized() && type.getRaw().getName().equals("io.vertx.core.Promise");
+    return type.isParameterized() && type.getRaw().getName().equals("io.vertx.core.Future");
   }
 
-  static boolean bilto(MethodInfo m1, MethodInfo m2) {
+  static Boolean bilto(MethodInfo m1, MethodInfo m2) {
 
-    if (m1.getName().equals(m2.getName()) && m1.getKind() == MethodKind.FUTURE && m2.getKind() == MethodKind.FUTURE
-        && m1.isStaticMethod() == m2.isStaticMethod()) {
-      List<ParamInfo> l1;
-      List<ParamInfo> l2;
-      if (isFutureType(m1.getReturnType()) && !isFutureType(m2.getReturnType())) {
-        l1 = m1.getParams();
-        l2 = m2.getParams();
-      } else if (!isFutureType(m1.getReturnType()) && isFutureType(m2.getReturnType())) {
-        l1 = m2.getParams();
-        l2 = m1.getParams();
+    if (m1.getName().equals(m2.getName()) && m1.isStaticMethod() == m2.isStaticMethod()) {
+      if (m1.getKind() == MethodKind.FUTURE && m2.getKind() == MethodKind.OTHER) {
+      } else if (m1.getKind() == MethodKind.OTHER && m2.getKind() == MethodKind.FUTURE) {
+        MethodInfo m3 = m2;
+        m2 = m1;
+        m1 = m3;
       } else {
         return false;
       }
-      if (m1.getFutureTypeArg().equals(m2.getFutureTypeArg()) && l1.size() + 1 == l2.size()) {
-        for (int i = 0;i < l1.size();i++) {
-          if (!l1.get(i).getType().equals(l2.get(i).getType())) {
-            return false;
+
+      if (Helper.isFutureType(m2.getReturnType())) {
+        List<ParamInfo> l1 = m1.getParams();
+        List<ParamInfo> l2 = m2.getParams();
+        TypeInfo abc = ((ParameterizedTypeInfo)m2.getReturnType()).getArg(0);
+        TypeInfo def = ((ParameterizedTypeInfo)((ParameterizedTypeInfo) l1.get(l1.size() - 1).getType()).getArg(0)).getArg(0);
+        if (abc.equals(def) && l2.size() + 1 == l1.size()) {
+          for (int i = 0;i < l2.size();i++) {
+            if (!l1.get(i).getType().equals(l2.get(i).getType())) {
+              return false;
+            }
           }
+          return true;
         }
-        return true;
       }
+
     }
     return false;
   }

@@ -133,17 +133,6 @@ public class MethodInfo implements Comparable<MethodInfo> {
     return new Signature(name, new ArrayList<>(params));
   }
 
-  public TypeInfo getFutureTypeArg() {
-    if (kind == MethodKind.FUTURE) {
-      if (Helper.isFutureType(returnType)) {
-        return ((ParameterizedTypeInfo)returnType).getArg(0);
-      } else {
-        return ((ParameterizedTypeInfo)((ParameterizedTypeInfo)params.get(params.size() - 1).getType()).getArg(0)).getArg(0);
-      }
-    }
-    return null;
-  }
-
   /**
    * Return true if the provided type is the sole owner of this method, i.e this method
    * is only declared by the provided type.

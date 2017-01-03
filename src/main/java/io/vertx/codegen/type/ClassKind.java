@@ -95,7 +95,7 @@ public enum ClassKind {
       return CLASS_TYPE;
     } else if (fqcn.equals(ClassModel.VERTX_HANDLER)) {
       return HANDLER;
-    } else if (fqcn.equals("io.vertx.core.Promise")) {
+    } else if (fqcn.equals("io.vertx.core.Future")) {
       return FUTURE;
     } else if (fqcn.equals(ClassModel.VERTX_ASYNC_RESULT)) {
       return ASYNC_RESULT;

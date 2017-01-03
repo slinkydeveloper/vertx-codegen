@@ -6,7 +6,7 @@ import io.vertx.codegen.annotations.VertxGen;
  * @author <a href="mailto:julien@julienviet.com">Julien Viet</a>
  */
 @VertxGen
-public interface Future<T> extends AsyncResult<T>, Promise<T> {
+public interface Future<T> extends AsyncResult<T> {
 
   static <T> Future<T> succeededFuture(T result) {
     throw new UnsupportedOperationException();

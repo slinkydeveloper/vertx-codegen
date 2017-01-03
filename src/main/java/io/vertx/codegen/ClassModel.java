@@ -27,7 +27,6 @@ import io.vertx.codegen.doc.Token;
 import io.vertx.codegen.overloadcheck.MethodOverloadChecker;
 import io.vertx.codegen.type.*;
 import io.vertx.codegen.type.VoidTypeInfo;
-import io.vertx.core.Future;
 
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.AnnotationMirror;
@@ -552,20 +551,6 @@ public class ClassModel implements Model {
   boolean process() {
     if (!processed) {
       traverseElem(modelElt);
-
-      futureMethods.forEach((elt, mi) -> {
-        List<MethodInfo> methodsByName = methodMap.get(mi.getName());
-        if (methodsByName != null) {
-          if (methodsByName.stream().filter(meth -> Helper.bilto(meth, mi)).findFirst().isPresent()) {
-            // Ok
-          } else {
-            throw new GenException(elt, "Implement me gracefully");
-          }
-        } else {
-          throw new GenException(elt, "Implement me gracefully");
-        }
-      });
-
       determineApiTypes();
       processed = true;
       return true;
@@ -658,6 +643,18 @@ public class ClassModel implements Model {
           filter(elt -> !typeUtils.isSameType(elt.getEnclosingElement().asType(), objectType)).
           flatMap(Helper.FILTER_METHOD).
           forEach(this::addMethod);
+
+      // Process all future methods lazily
+      futureMethods.forEach((elt, mi) -> {
+        List<MethodInfo> methodsByName = methodMap.get(mi.getName());
+        if (methodsByName != null) {
+          if (methodsByName.stream().filter(meth -> Helper.bilto(meth, mi)).findFirst().isPresent()) {
+            // Ok
+            return;
+          }
+        }
+        addMethod(elt, mi);
+      });
 
       boolean hasNoMethods = methods.values().stream().filter(m -> !m.isDefaultMethod()).count() == 0;
       if (hasNoMethods && superTypes.isEmpty()) {
@@ -842,21 +839,10 @@ public class ClassModel implements Model {
     }
     String methodName = modelMethod.getSimpleName().toString();
 
-    // Only check the return type if not fluent, because generated code won't look it at anyway
-    if (!isFluent) {
-      checkReturnType(modelMethod, returnType, methodType.getReturnType());
-    } else if (returnType.isNullable()) {
-      throw new GenException(modelMethod, "Fluent return type cannot be nullable");
-    }
-
     // Determine method kind + validate
     MethodKind kind = MethodKind.OTHER;
     int lastParamIndex = mParams.size() - 1;
-    boolean deferred = false;
-    if (Helper.isFutureType(returnType)) {
-      kind = MethodKind.FUTURE;
-      deferred = true;
-    } else if (lastParamIndex >= 0 && (returnType instanceof VoidTypeInfo || isFluent)) {
+    if (lastParamIndex >= 0 && (returnType instanceof VoidTypeInfo || isFluent)) {
       TypeInfo lastParamType = mParams.get(lastParamIndex).type;
       if (lastParamType.getKind() == ClassKind.HANDLER) {
         TypeInfo typeArg = ((ParameterizedTypeInfo) lastParamType).getArgs().get(0);
@@ -871,9 +857,22 @@ public class ClassModel implements Model {
     MethodInfo methodInfo = createMethodInfo(ownerTypes, methodName, comment, doc, kind,
         returnType, returnDesc, isFluent, isCacheReturn, mParams, modelMethod, isStatic, isDefault, typeParams, declaringElt);
 
-    if (deferred) {
+    if (Helper.isFutureType(returnType)) {
       futureMethods.put(modelMethod, methodInfo);
-      return;
+    } else {
+      addMethod(modelMethod, methodInfo);
+    }
+  }
+
+  private void addMethod(ExecutableElement modelMethod, MethodInfo methodInfo) {
+
+    ExecutableType methodType = (ExecutableType) typeUtils.asMemberOf((DeclaredType) modelElt.asType(), modelMethod);
+
+    // Only check the return type if not fluent, because generated code won't look it at anyway
+    if (!methodInfo.isFluent()) {
+      checkReturnType(modelMethod, methodInfo.getReturnType(), methodType.getReturnType());
+    } else if (methodInfo.getReturnType().isNullable()) {
+      throw new GenException(modelMethod, "Fluent return type cannot be nullable");
     }
 
     checkMethod(methodInfo);
@@ -893,7 +892,7 @@ public class ClassModel implements Model {
     }
 
     // Add the method
-    List<MethodInfo> methodsByName = methodMap.get(methodName);
+    List<MethodInfo> methodsByName = methodMap.get(methodInfo.getName());
     if (methodsByName == null) {
       methodsByName = new ArrayList<>();
       methodMap.put(methodInfo.getName(), methodsByName);
@@ -901,6 +900,8 @@ public class ClassModel implements Model {
     methodsByName.add(methodInfo);
     methodInfo.collectImports(collectedTypes);
 
+    TypeElement declaringElt = (TypeElement) modelMethod.getEnclosingElement();
+    TypeInfo declaringType = typeFactory.create(declaringElt.asType());
     if (!declaringElt.equals(modelElt) && declaringType.getKind() == ClassKind.API) {
       ApiTypeInfo declaringApiType = (ApiTypeInfo) declaringType.getRaw();
       if (declaringApiType.isConcrete()) {
