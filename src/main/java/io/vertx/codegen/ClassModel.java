@@ -56,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -655,6 +656,20 @@ public class ClassModel implements Model {
         }
         addMethod(elt, mi);
       });
+
+      // List all async methods without a dual Future method
+      AtomicBoolean a = new AtomicBoolean();
+      methods.values()
+        .stream()
+        .filter(m -> m.getKind() == MethodKind.FUTURE)
+        .filter(m -> !futureMethods.values().stream().filter(o -> Helper.bilto(m, o)).findFirst().isPresent())
+        .forEach(m -> {
+          if (a.compareAndSet(false, true)) {
+            System.out.println("-----------------");
+            System.out.println("  " + type.getName() + ":");
+          }
+          System.out.println("  " + m);
+        });
 
       boolean hasNoMethods = methods.values().stream().filter(m -> !m.isDefaultMethod()).count() == 0;
       if (hasNoMethods && superTypes.isEmpty()) {
