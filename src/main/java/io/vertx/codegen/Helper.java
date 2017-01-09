@@ -669,7 +669,10 @@ public class Helper {
     return type.isParameterized() && type.getRaw().getName().equals("io.vertx.core.Future");
   }
 
-  static Boolean bilto(MethodInfo m1, MethodInfo m2) {
+  /**
+   * @return true when {@code m1} and {@code m2} are future fluent duals
+   */
+  static Boolean areFutureFluentDual(MethodInfo m1, MethodInfo m2) {
 
     if (m1.getName().equals(m2.getName()) && m1.isStaticMethod() == m2.isStaticMethod()) {
       if (m1.getKind() == MethodKind.FUTURE && m2.getKind() == MethodKind.OTHER) {

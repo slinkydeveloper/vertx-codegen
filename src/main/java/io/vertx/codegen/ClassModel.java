@@ -56,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -649,7 +648,7 @@ public class ClassModel implements Model {
       futureMethods.forEach((elt, mi) -> {
         List<MethodInfo> methodsByName = methodMap.get(mi.getName());
         if (methodsByName != null) {
-          Optional<MethodInfo> opt = methodsByName.stream().filter(meth -> Helper.bilto(meth, mi)).findFirst();
+          Optional<MethodInfo> opt = methodsByName.stream().filter(meth -> Helper.areFutureFluentDual(meth, mi)).findFirst();
           if (opt.isPresent()) {
             // Ok
             opt.get().fluentFuture = mi;
@@ -660,17 +659,14 @@ public class ClassModel implements Model {
       });
 
       // List all async methods without a dual Future method
-      AtomicBoolean a = new AtomicBoolean();
-      methods.values()
+      methods.entrySet()
         .stream()
-        .filter(m -> m.getKind() == MethodKind.FUTURE)
-        .filter(m -> !futureMethods.values().stream().filter(o -> Helper.bilto(m, o)).findFirst().isPresent())
-        .forEach(m -> {
-          if (a.compareAndSet(false, true)) {
-            System.out.println("-----------------");
-            System.out.println("  " + type.getName() + ":");
-          }
-          System.out.println("  " + m);
+        .filter(e -> e.getValue().getKind() == MethodKind.FUTURE)
+        .filter(e -> !futureMethods.values().stream().filter(o -> Helper.areFutureFluentDual(e.getValue(), o)).findFirst().isPresent())
+        .forEach(e -> {
+          String msg = "No future fluent for " + e.getKey();
+          messager.printMessage(Diagnostic.Kind.WARNING, msg, e.getKey());
+          logger.warning(msg);
         });
 
       boolean hasNoMethods = methods.values().stream().filter(m -> !m.isDefaultMethod()).count() == 0;
