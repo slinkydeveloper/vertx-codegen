@@ -649,8 +649,10 @@ public class ClassModel implements Model {
       futureMethods.forEach((elt, mi) -> {
         List<MethodInfo> methodsByName = methodMap.get(mi.getName());
         if (methodsByName != null) {
-          if (methodsByName.stream().filter(meth -> Helper.bilto(meth, mi)).findFirst().isPresent()) {
+          Optional<MethodInfo> opt = methodsByName.stream().filter(meth -> Helper.bilto(meth, mi)).findFirst();
+          if (opt.isPresent()) {
             // Ok
+            opt.get().fluentFuture = mi;
             return;
           }
         }

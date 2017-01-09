@@ -29,7 +29,8 @@ public abstract class ClassTestBase {
   enum MethodCheck {
     FLUENT,
     STATIC,
-    CACHE_RETURN
+    CACHE_RETURN,
+    DUAL_FUTURE
   }
 
   void checkMethod(MethodInfo meth, String name, int numParams, TypeLiteral<?> returnType, MethodKind kind, MethodCheck... checks) {
@@ -69,6 +70,7 @@ public abstract class ClassTestBase {
     assertEquals(checkSet.contains(MethodCheck.CACHE_RETURN), meth.isCacheReturn());
     assertEquals(checkSet.contains(MethodCheck.FLUENT), meth.isFluent());
     assertEquals(checkSet.contains(MethodCheck.STATIC), meth.isStaticMethod());
+    assertEquals(checkSet.contains(MethodCheck.DUAL_FUTURE), meth.getFluentFuture() != null);
     assertEquals(numParams, meth.getParams().size());
   }
 

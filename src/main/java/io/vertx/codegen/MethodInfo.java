@@ -46,6 +46,7 @@ public class MethodInfo implements Comparable<MethodInfo> {
   final Doc doc;
   final boolean staticMethod;
   final boolean defaultMethod;
+  MethodInfo fluentFuture;
   List<TypeParamInfo.Method> typeParams;
   LinkedHashSet<ClassTypeInfo> ownerTypes;
   List<ParamInfo> params;
@@ -226,6 +227,10 @@ public class MethodInfo implements Comparable<MethodInfo> {
       return -1;
     }
     return 0;
+  }
+
+  public MethodInfo getFluentFuture() {
+    return fluentFuture;
   }
 
   @Override

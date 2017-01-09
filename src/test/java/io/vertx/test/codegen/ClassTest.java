@@ -1732,13 +1732,13 @@ public class ClassTest extends ClassTestBase {
   public void testMethodWithFutureReturn() throws Exception {
     ClassModel model = new Generator().generateClass(FutureInterface.class);
     assertEquals(8, model.getMethods().size());
-    checkMethod(model.getMethods().get(0), "methodWithVoidFuture1", 1, "void", MethodKind.FUTURE);
-    checkMethod(model.getMethods().get(1), "methodWithVoidFuture2", 1, "void", MethodKind.FUTURE);
-    checkMethod(model.getMethods().get(2), "methodWithTypeParamFuture", 1, "void", MethodKind.FUTURE);
-    checkMethod(model.getMethods().get(3), "methodWithArgAndFuture", 2, "void", MethodKind.FUTURE);
-    checkMethod(model.getMethods().get(4), "methodWithGenericFutureWithArg", 2, "void", MethodKind.FUTURE);
-    checkMethod(model.getMethods().get(5), "methodWithListFuture", 1, "void", MethodKind.FUTURE);
-    checkMethod(model.getMethods().get(6), "fluentMethodWithVoidFuture", 1, FutureInterface.class.getName(), MethodKind.FUTURE, MethodCheck.FLUENT);
+    checkMethod(model.getMethods().get(0), "methodWithVoidFuture1", 1, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
+    checkMethod(model.getMethods().get(1), "methodWithVoidFuture2", 1, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
+    checkMethod(model.getMethods().get(2), "methodWithTypeParamFuture", 1, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
+    checkMethod(model.getMethods().get(3), "methodWithArgAndFuture", 2, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
+    checkMethod(model.getMethods().get(4), "methodWithGenericFutureWithArg", 2, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
+    checkMethod(model.getMethods().get(5), "methodWithListFuture", 1, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
+    checkMethod(model.getMethods().get(6), "fluentMethodWithVoidFuture", 1, FutureInterface.class.getName(), MethodKind.FUTURE, MethodCheck.FLUENT, MethodCheck.DUAL_FUTURE);
     checkMethod(model.getMethods().get(7), "methodReturningFuture", 0, new TypeLiteral<Future<Void>>() {}, MethodKind.OTHER);
 
     // Check static
