@@ -196,6 +196,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1739,7 +1740,6 @@ public class ClassTest extends ClassTestBase {
     checkMethod(model.getMethods().get(4), "methodWithGenericFutureWithArg", 2, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
     checkMethod(model.getMethods().get(5), "methodWithListFuture", 1, "void", MethodKind.FUTURE, MethodCheck.DUAL_FUTURE);
     checkMethod(model.getMethods().get(6), "fluentMethodWithVoidFuture", 1, FutureInterface.class.getName(), MethodKind.FUTURE, MethodCheck.FLUENT, MethodCheck.DUAL_FUTURE);
-    checkMethod(model.getMethods().get(7), "methodReturningFuture", 0, new TypeLiteral<Future<Void>>() {}, MethodKind.OTHER);
 
     // Check static
     // Check type params with different names

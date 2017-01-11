@@ -18,7 +18,6 @@ package io.vertx.codegen;
 
 import io.vertx.codegen.type.ParameterizedTypeInfo;
 import io.vertx.codegen.type.TypeInfo;
-import io.vertx.core.Future;
 
 import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
@@ -33,6 +32,7 @@ import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
+import javax.lang.model.type.WildcardType;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import java.io.File;
@@ -48,6 +48,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -665,26 +667,30 @@ public class Helper {
         count() > 0;
   }
 
-  static boolean isFutureType(TypeInfo type) {
-    return type.isParameterized() && type.getRaw().getName().equals("io.vertx.core.Future");
+  static boolean isFutureType(Elements elementUtils, Types typeUtils, TypeMirror type) {
+    TypeElement elt = elementUtils.getTypeElement(CompletionStage.class.getName());
+    WildcardType w = typeUtils.getWildcardType(null, null);
+    DeclaredType t = typeUtils.getDeclaredType(elt, w);
+    return typeUtils.isAssignable(type, t);
   }
 
   /**
    * @return true when {@code m1} and {@code m2} are future fluent duals
    */
-  static Boolean areFutureFluentDual(MethodInfo m1, MethodInfo m2) {
-
+  static Boolean areFutureFluentDual(Elements elementUtils, Types typeUtils, MethodInfo m1, TypeMirror type1, MethodInfo m2, TypeMirror type2) {
     if (m1.getName().equals(m2.getName()) && m1.isStaticMethod() == m2.isStaticMethod()) {
       if (m1.getKind() == MethodKind.FUTURE && m2.getKind() == MethodKind.OTHER) {
       } else if (m1.getKind() == MethodKind.OTHER && m2.getKind() == MethodKind.FUTURE) {
         MethodInfo m3 = m2;
         m2 = m1;
         m1 = m3;
+        TypeMirror type3 = type2;
+        type2 = type1;
+        type1 = type3;
       } else {
         return false;
       }
-
-      if (Helper.isFutureType(m2.getReturnType())) {
+      if (Helper.isFutureType(elementUtils, typeUtils, type2)) {
         List<ParamInfo> l1 = m1.getParams();
         List<ParamInfo> l2 = m2.getParams();
         TypeInfo abc = ((ParameterizedTypeInfo)m2.getReturnType()).getArg(0);
