@@ -57,7 +57,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 /**
  * A processed source.
@@ -85,8 +84,8 @@ public class ClassModel implements Model {
   protected final Elements elementUtils;
   protected final Types typeUtils;
   protected boolean processed = false;
-  protected LinkedHashMap<ExecutableElement, MethodInfo> methods = new LinkedHashMap<>();
-  protected LinkedHashMap<ExecutableElement, MethodInfo> futureMethods = new LinkedHashMap<>();
+  protected MethodList methods = new MethodList();
+  protected MethodList futureMethods = new MethodList();
   protected Set<ClassTypeInfo> collectedTypes = new HashSet<>();
   protected Set<ClassTypeInfo> importedTypes = new HashSet<>();
   protected Set<ApiTypeInfo> referencedTypes = new HashSet<>();
@@ -133,15 +132,15 @@ public class ClassModel implements Model {
   }
 
   public List<MethodInfo> getMethods() {
-    return new ArrayList<>(methods.values());
+    return methods;
   }
 
   public List<MethodInfo> getStaticMethods() {
-    return methods.values().stream().filter(MethodInfo::isStaticMethod).collect(Collectors.toList());
+    return methods.getStaticMethods();
   }
 
   public List<MethodInfo> getInstanceMethods() {
-    return methods.values().stream().filter(m -> !m.isStaticMethod()).collect(Collectors.toList());
+    return methods.getInstanceMethods();
   }
 
   public boolean isConcrete() {
@@ -645,13 +644,21 @@ public class ClassModel implements Model {
           forEach(this::addMethod);
 
       // Process all future methods lazily
-      futureMethods.forEach((elt, mi) -> {
+      futureMethods.entries().forEach(eee -> {
+        ExecutableElement elt = eee.getKey();
+        MethodInfo mi = eee.getValue();
         List<MethodInfo> methodsByName = methodMap.get(mi.getName());
         if (methodsByName != null) {
-          Optional<MethodInfo> opt = methodsByName.stream().filter(meth -> Helper.areFutureFluentDual(meth, mi)).findFirst();
+
+
+
+          Optional<MethodInfo> opt = methodsByName
+            .stream()
+            .filter(meth -> Helper.areFutureFluentDual(elementUtils, typeUtils, meth, methods.getElement(meth).getReturnType(), mi, elt.getReturnType()))
+            .findFirst();
           if (opt.isPresent()) {
             // Ok
-            opt.get().fluentFuture = mi;
+            opt.get().fluentFuture = eee.getValue();
             return;
           }
         }
@@ -659,17 +666,21 @@ public class ClassModel implements Model {
       });
 
       // List all async methods without a dual Future method
-      methods.entrySet()
-        .stream()
+      methods
+        .entries()
         .filter(e -> e.getValue().getKind() == MethodKind.FUTURE)
-        .filter(e -> !futureMethods.values().stream().filter(o -> Helper.areFutureFluentDual(e.getValue(), o)).findFirst().isPresent())
+        .filter(e -> !futureMethods
+          .stream()
+          .filter(o -> Helper.areFutureFluentDual(elementUtils, typeUtils, e.getValue(), e.getKey().getReturnType(), o, futureMethods.getElement(o).getReturnType()))
+          .findFirst()
+          .isPresent())
         .forEach(e -> {
           String msg = "No future fluent for " + e.getKey();
           messager.printMessage(Diagnostic.Kind.WARNING, msg, e.getKey());
           logger.warning(msg);
         });
 
-      boolean hasNoMethods = methods.values().stream().filter(m -> !m.isDefaultMethod()).count() == 0;
+      boolean hasNoMethods = methods.stream().filter(m -> !m.isDefaultMethod()).count() == 0;
       if (hasNoMethods && superTypes.isEmpty()) {
         throw new GenException(elem, "Interface " + ifaceFQCN + " does not contain any methods for generation");
       }
@@ -870,8 +881,8 @@ public class ClassModel implements Model {
     MethodInfo methodInfo = createMethodInfo(ownerTypes, methodName, comment, doc, kind,
         returnType, returnDesc, isFluent, isCacheReturn, mParams, modelMethod, isStatic, isDefault, typeParams, declaringElt);
 
-    if (Helper.isFutureType(returnType)) {
-      futureMethods.put(modelMethod, methodInfo);
+    if (Helper.isFutureType(elementUtils, typeUtils, modelMethod.getReturnType())) {
+      futureMethods.add(modelMethod, methodInfo);
     } else {
       addMethod(modelMethod, methodInfo);
     }
@@ -893,15 +904,19 @@ public class ClassModel implements Model {
     // Check we don't hide another method, we don't check overrides but we are more
     // interested by situations like diamond inheritance of the same method, in this case
     // we see two methods with the same signature that don't override each other
-    for (Map.Entry<ExecutableElement, MethodInfo> otherMethod : methods.entrySet()) {
+    long c = methods.entries().filter(otherMethod -> {
       if (otherMethod.getValue().getName().equals(modelMethod.getSimpleName().toString())) {
         ExecutableType t1 = (ExecutableType) otherMethod.getKey().asType();
         ExecutableType t2 = (ExecutableType) modelMethod.asType();
         if (typeUtils.isSubsignature(t1, t2) && typeUtils.isSubsignature(t2, t1)) {
           otherMethod.getValue().ownerTypes.addAll(methodInfo.ownerTypes);
-          return;
+          return true;
         }
       }
+      return false;
+    }).count();
+    if (c > 0) {
+      return;
     }
 
     // Add the method
@@ -923,7 +938,7 @@ public class ClassModel implements Model {
         }
       }
     }
-    methods.put(modelMethod, methodInfo);
+    methods.add(modelMethod, methodInfo);
   }
 
   // This is a hook to allow a specific type of method to be created

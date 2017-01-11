@@ -3,10 +3,10 @@ package io.vertx.test.codegen.testapi.future;
 import io.vertx.codegen.annotations.Fluent;
 import io.vertx.codegen.annotations.VertxGen;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * @author <a href="http://tfox.org">Tim Fox</a>
@@ -15,27 +15,27 @@ import java.util.List;
 public interface FutureInterface {
 
   void methodWithVoidFuture1(Handler<AsyncResult<Void>> handler);
-  Future<Void> methodWithVoidFuture1();
+  CompletableFuture<Void> methodWithVoidFuture1();
 
-  Future<Void> methodWithVoidFuture2();
+  CompletableFuture<Void> methodWithVoidFuture2();
   void methodWithVoidFuture2(Handler<AsyncResult<Void>> handler);
 
   <U> void methodWithTypeParamFuture(Handler<AsyncResult<U>> handler);
-  <T> Future<T> methodWithTypeParamFuture();
+  <T> CompletableFuture<T> methodWithTypeParamFuture();
 
   void methodWithArgAndFuture(String s, Handler<AsyncResult<Void>> handler);
-  Future<Void> methodWithArgAndFuture(String s);
+  CompletableFuture<Void> methodWithArgAndFuture(String s);
 
   <T> void methodWithGenericFutureWithArg(T t, Handler<AsyncResult<Void>> handler);
-  <U> Future<Void> methodWithGenericFutureWithArg(U u);
+  <U> CompletableFuture<Void> methodWithGenericFutureWithArg(U u);
 
   void methodWithListFuture(Handler<AsyncResult<List<String>>> handler);
-  Future<List<String>> methodWithListFuture();
+  CompletableFuture<List<String>> methodWithListFuture();
 
   @Fluent
   FutureInterface fluentMethodWithVoidFuture(Handler<AsyncResult<Void>> handler);
-  Future<Void> fluentMethodWithVoidFuture();
+  CompletableFuture<Void> fluentMethodWithVoidFuture();
 
-  Future<Void> methodReturningFuture();
-
+  void methodWithCompletableFutureExt(Handler<AsyncResult<Void>> handler);
+  CompletableFutureExt<Void> methodWithCompletableFutureExt();
 }
