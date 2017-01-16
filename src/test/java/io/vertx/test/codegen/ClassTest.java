@@ -174,6 +174,7 @@ import io.vertx.test.codegen.testapi.fluent.FluentMethodWithIllegalReturn;
 import io.vertx.test.codegen.testapi.fluent.FluentMethodWithVoidReturn;
 import io.vertx.test.codegen.testapi.fluent.InterfaceWithFluentMethodOverrideFromAbstract;
 import io.vertx.test.codegen.testapi.fluent.InterfaceWithFluentMethodOverrideFromConcrete;
+import io.vertx.test.codegen.testapi.future.ChildInterface;
 import io.vertx.test.codegen.testapi.future.FutureInterface;
 import io.vertx.test.codegen.testapi.future.MethodWithInvalidTypeParamFuture2;
 import io.vertx.test.codegen.testapi.handler.InterfaceExtendingHandlerStringSubtype;
@@ -1744,6 +1745,11 @@ public class ClassTest extends ClassTestBase {
     // Check static
     // Check type params with different names
 
+  }
+
+  @Test
+  public void testMethodWithFutureInheritance() throws Exception {
+    ClassModel model = new Generator().generateClass(ChildInterface.class);
   }
 
   @Test

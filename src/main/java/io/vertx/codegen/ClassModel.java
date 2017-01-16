@@ -649,9 +649,6 @@ public class ClassModel implements Model {
         MethodInfo mi = eee.getValue();
         List<MethodInfo> methodsByName = methodMap.get(mi.getName());
         if (methodsByName != null) {
-
-
-
           Optional<MethodInfo> opt = methodsByName
             .stream()
             .filter(meth -> Helper.areFutureFluentDual(elementUtils, typeUtils, meth, methods.getElement(meth).getReturnType(), mi, elt.getReturnType()))
@@ -662,7 +659,7 @@ public class ClassModel implements Model {
             return;
           }
         }
-        addMethod(elt, mi);
+        addMethod(elt, mi, true);
       });
 
       // List all async methods without a dual Future method
@@ -881,25 +878,15 @@ public class ClassModel implements Model {
     MethodInfo methodInfo = createMethodInfo(ownerTypes, methodName, comment, doc, kind,
         returnType, returnDesc, isFluent, isCacheReturn, mParams, modelMethod, isStatic, isDefault, typeParams, declaringElt);
 
-    if (Helper.isFutureType(elementUtils, typeUtils, modelMethod.getReturnType())) {
-      futureMethods.add(modelMethod, methodInfo);
-    } else {
-      addMethod(modelMethod, methodInfo);
+    boolean declared = true;
+    if (!declaringElt.equals(modelElt) && declaringType.getKind() == ClassKind.API) {
+      ApiTypeInfo declaringApiType = (ApiTypeInfo) declaringType.getRaw();
+      if (declaringApiType.isConcrete()) {
+        if (typeUtils.isSameType(methodType, modelMethod.asType())) {
+          declared = false;
+        }
+      }
     }
-  }
-
-  private void addMethod(ExecutableElement modelMethod, MethodInfo methodInfo) {
-
-    ExecutableType methodType = (ExecutableType) typeUtils.asMemberOf((DeclaredType) modelElt.asType(), modelMethod);
-
-    // Only check the return type if not fluent, because generated code won't look it at anyway
-    if (!methodInfo.isFluent()) {
-      checkReturnType(modelMethod, methodInfo.getReturnType(), methodType.getReturnType());
-    } else if (methodInfo.getReturnType().isNullable()) {
-      throw new GenException(modelMethod, "Fluent return type cannot be nullable");
-    }
-
-    checkMethod(methodInfo);
 
     // Check we don't hide another method, we don't check overrides but we are more
     // interested by situations like diamond inheritance of the same method, in this case
@@ -919,6 +906,28 @@ public class ClassModel implements Model {
       return;
     }
 
+    if (Helper.isFutureType(elementUtils, typeUtils, modelMethod.getReturnType())) {
+      if (declared) {
+        futureMethods.add(modelMethod, methodInfo);
+      }
+    } else {
+      addMethod(modelMethod, methodInfo, declared);
+    }
+  }
+
+  private void addMethod(ExecutableElement modelMethod, MethodInfo methodInfo, boolean declared) {
+
+    ExecutableType methodType = (ExecutableType) typeUtils.asMemberOf((DeclaredType) modelElt.asType(), modelMethod);
+
+    // Only check the return type if not fluent, because generated code won't look it at anyway
+    if (!methodInfo.isFluent()) {
+      checkReturnType(modelMethod, methodInfo.getReturnType(), methodType.getReturnType());
+    } else if (methodInfo.getReturnType().isNullable()) {
+      throw new GenException(modelMethod, "Fluent return type cannot be nullable");
+    }
+
+    checkMethod(methodInfo);
+
     // Add the method
     List<MethodInfo> methodsByName = methodMap.get(methodInfo.getName());
     if (methodsByName == null) {
@@ -927,18 +936,9 @@ public class ClassModel implements Model {
     }
     methodsByName.add(methodInfo);
     methodInfo.collectImports(collectedTypes);
-
-    TypeElement declaringElt = (TypeElement) modelMethod.getEnclosingElement();
-    TypeInfo declaringType = typeFactory.create(declaringElt.asType());
-    if (!declaringElt.equals(modelElt) && declaringType.getKind() == ClassKind.API) {
-      ApiTypeInfo declaringApiType = (ApiTypeInfo) declaringType.getRaw();
-      if (declaringApiType.isConcrete()) {
-        if (typeUtils.isSameType(methodType, modelMethod.asType())) {
-          return;
-        }
-      }
+    if (declared) {
+      methods.add(modelMethod, methodInfo);
     }
-    methods.add(modelMethod, methodInfo);
   }
 
   // This is a hook to allow a specific type of method to be created
