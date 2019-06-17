@@ -11,7 +11,7 @@
       <outputDirectory>/</outputDirectory>
       <useProjectArtifact>true</useProjectArtifact>
       <includes>
-        <include>io.vertx:vertx-codegen</include>
+        <include>com.slinkydeveloper:vertx-codegen</include>
       </includes>
       <unpack>true</unpack>
     </dependencySet>
